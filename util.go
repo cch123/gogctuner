@@ -1,4 +1,4 @@
-package main
+package gogctuner
 
 import (
 	mem_util "github.com/shirou/gopsutil/mem"
@@ -6,12 +6,13 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
-	"runtime/pprof"
 	"strconv"
 	"strings"
 )
 
-const 	cgroupMemLimitPath  = "/sys/fs/cgroup/memory/memory.limit_in_bytes"
+const cgroupMemLimitPath = "/sys/fs/cgroup/memory/memory.limit_in_bytes"
+
+var memoryLimitInPercent float64 = 100 // default no limit
 
 // copied from https://github.com/containerd/cgroups/blob/318312a373405e5e91134d8063d04d59768a1bff/utils.go#L251
 func parseUint(s string, base, bitSize int) (uint64, error) {
@@ -89,10 +90,6 @@ func getUsageNormal() (float64, error) {
 	}
 
 	return float64(mem), nil
-}
-
-func getThreadNum() int {
-	return pprof.Lookup("threadcreate").Count()
 }
 
 var getUsage func() (float64, error)
