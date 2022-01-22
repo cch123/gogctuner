@@ -15,6 +15,11 @@ type finalizerRef struct {
 	parent *finalizer
 }
 
+// default GOGC = 100
+// FIXME, if use sets the GOGC at startup
+// how to get this value correctly?
+var previousGOGC = 100
+
 // don't trigger err log on every failure
 var failCounter = -1
 
@@ -32,9 +37,14 @@ func getCurrentPercentAndChangeGOGC() {
 	// 	hard_target =  memoryLimitInPercent
 	// 	live_dataset = memPercent
 	//  so gogc = (hard_target - livedataset) / live_dataset * 100
-	//  FIXME, if newgogc < 0, what should we do?
 	newgogc := (memoryLimitInPercent - memPercent) / memPercent * 100.0
-	debug.SetGCPercent(int(newgogc))
+
+	// if newgogc < 0, we have to use the previous gogc to determine the next
+	if newgogc < 0 {
+		newgogc = float64(previousGOGC) * memoryLimitInPercent / memPercent
+	}
+
+	previousGOGC = debug.SetGCPercent(int(newgogc))
 }
 
 func finalizerHandler(f *finalizerRef) {
