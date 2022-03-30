@@ -16,8 +16,6 @@ type finalizerRef struct {
 }
 
 // default GOGC = 100
-// FIXME, if use sets the GOGC at startup
-// how to get this value correctly?
 var previousGOGC = 100
 
 // don't trigger err log on every failure
@@ -56,11 +54,20 @@ func finalizerHandler(f *finalizerRef) {
 	getCurrentPercentAndChangeGOGC()
 	runtime.SetFinalizer(f, finalizerHandler)
 }
-
+	
 // NewTuner
 //   set useCgroup to true if your app is in docker
 //   set percent to control the gc trigger, 0-100, 100 or upper means no limit
+//
+//   modify default GOGC value in the case there's an env variable set.
 func NewTuner(useCgroup bool, percent float64) *finalizer {
+	
+	if envGOGC := os.Getenv("GOGC"); envGOGC != "" {
+		n, err := strconv.Atoi(envGOGC)
+		if err == nil {
+			previousGOGC = n
+		}
+	}
 	if useCgroup {
 		getUsage = getUsageCGroup
 	} else {
