@@ -5,11 +5,9 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strconv"
-	"time"
 )
 
 type finalizer struct {
-	ch  chan time.Time
 	ref *finalizerRef
 }
 
@@ -48,11 +46,6 @@ func getCurrentPercentAndChangeGOGC() {
 }
 
 func finalizerHandler(f *finalizerRef) {
-	select {
-	case f.parent.ch <- time.Time{}:
-	default:
-	}
-
 	getCurrentPercentAndChangeGOGC()
 	runtime.SetFinalizer(f, finalizerHandler)
 }
@@ -78,9 +71,7 @@ func NewTuner(useCgroup bool, percent float64) *finalizer {
 
 	memoryLimitInPercent = percent
 
-	f := &finalizer{
-		ch: make(chan time.Time, 1),
-	}
+	f := &finalizer{}
 
 	f.ref = &finalizerRef{parent: f}
 	runtime.SetFinalizer(f.ref, finalizerHandler)
