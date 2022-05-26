@@ -63,6 +63,8 @@ func getCurrentPercentAndChangeGOGC() {
 		return
 	}
 
+	logger.Debug("Mem usage: %v", memPercent)
+
 	// hard_target = live_dataset + live_dataset * (GOGC / 100).
 	// 	hard_target =  memoryLimitInPercent
 	// 	live_dataset = memPercent
@@ -72,9 +74,9 @@ func getCurrentPercentAndChangeGOGC() {
 	// if newgogc < 0, we have to use the previous gogc to determine the next
 	if newgogc < 0 {
 		newgogc = float64(previousGOGC) * memoryLimitInPercent / memPercent
-		logger.Debug(fmt.Sprintf("adjusting GOGC using previous - from %v to %v", previousGOGC, newgogc))
+		logger.Debug(fmt.Sprintf("attempting to adjust GOGC using previous - from %v to %v", previousGOGC, newgogc))
 	} else {
-		logger.Debug(fmt.Sprintf("adjusting GOGC - from %v to %v", previousGOGC, newgogc))
+		logger.Debug(fmt.Sprintf("attempting to adjust GOGC - from %v to %v", previousGOGC, newgogc))
 	}
 
 	previousGOGC = debug.SetGCPercent(int(newgogc))
