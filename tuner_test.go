@@ -69,7 +69,7 @@ type GetGOGCTestCase struct {
 }
 
 func TestGetGOGCBasics(t *testing.T) {
-	given := []GetGOGCTestCase{
+	cases := []GetGOGCTestCase{
 		{
 			PreviousGOGC:         100,
 			MemoryLimitInPercent: 80,
@@ -89,10 +89,10 @@ func TestGetGOGCBasics(t *testing.T) {
 			ExpectedGOGC:         166,
 		},
 	}
-	for i, _ := range given {
-		result := getGOGC(given[i].PreviousGOGC, given[i].MemoryLimitInPercent, given[i].MemPercent)
-		if result != given[i].ExpectedGOGC {
-			t.Errorf("Failed Test Case #%v - Expected: %v Found: %v", i+1, given[i].ExpectedGOGC, result)
+	for i, _ := range cases {
+		result := getGOGC(cases[i].PreviousGOGC, cases[i].MemoryLimitInPercent, cases[i].MemPercent)
+		if result != cases[i].ExpectedGOGC {
+			t.Errorf("Failed Test Case #%v - Expected: %v Found: %v", i+1, cases[i].ExpectedGOGC, result)
 		}
 	}
 }
