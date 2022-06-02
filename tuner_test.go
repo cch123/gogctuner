@@ -59,3 +59,40 @@ func TestInitDoesNotPanic2(t *testing.T) {
 	GenerateMap(5 * 1000)
 	time.Sleep(5 * time.Second)
 }
+
+// func getGOGC(previousGOGC int , memoryLimitInPercent, memPercent float64) int {
+type GetGOGCTestCase struct {
+	PreviousGOGC         int
+	MemoryLimitInPercent float64
+	MemPercent           float64
+	ExpectedGOGC         int
+}
+
+func TestGetGOGCBasics(t *testing.T) {
+	cases := []GetGOGCTestCase{
+		{
+			PreviousGOGC:         100,
+			MemoryLimitInPercent: 80,
+			MemPercent:           100,
+			ExpectedGOGC:         80,
+		},
+		{
+			PreviousGOGC:         10,
+			MemoryLimitInPercent: 80,
+			MemPercent:           10,
+			ExpectedGOGC:         700,
+		},
+		{
+			PreviousGOGC:         100,
+			MemoryLimitInPercent: 80,
+			MemPercent:           30,
+			ExpectedGOGC:         166,
+		},
+	}
+	for i, _ := range cases {
+		result := getGOGC(cases[i].PreviousGOGC, cases[i].MemoryLimitInPercent, cases[i].MemPercent)
+		if result != cases[i].ExpectedGOGC {
+			t.Errorf("Failed Test Case #%v - Expected: %v Found: %v", i+1, cases[i].ExpectedGOGC, result)
+		}
+	}
+}

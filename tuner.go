@@ -2,13 +2,16 @@ package gogctuner
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"runtime"
 	"runtime/debug"
 	"strconv"
-
-	"log"
 )
+
+func init() {
+	logger = &StdLoggerAdapter{}
+}
 
 type ILogger interface {
 	Error(args ...interface{})
@@ -65,6 +68,12 @@ func getCurrentPercentAndChangeGOGC() {
 
 	logger.Debug("Mem usage: %v", memPercent)
 
+	newgogc := getGOGC(previousGOGC, memoryLimitInPercent, memPercent)
+
+	previousGOGC = debug.SetGCPercent(newgogc)
+}
+
+func getGOGC(previousGOGC int, memoryLimitInPercent, memPercent float64) int {
 	// hard_target = live_dataset + live_dataset * (GOGC / 100).
 	// 	hard_target =  memoryLimitInPercent
 	// 	live_dataset = memPercent
@@ -78,8 +87,7 @@ func getCurrentPercentAndChangeGOGC() {
 	} else {
 		logger.Debug(fmt.Sprintf("attempting to adjust GOGC - from %v to %v", previousGOGC, newgogc))
 	}
-
-	previousGOGC = debug.SetGCPercent(int(newgogc))
+	return int(newgogc)
 }
 
 func finalizerHandler(f *finalizerRef) {
@@ -93,9 +101,17 @@ func finalizerHandler(f *finalizerRef) {
 //
 //   modify default GOGC value in the case there's an env variable set.
 func NewTuner(useCgroup bool, percent float64, options ...OptFunc) *finalizer {
-	logger = &StdLoggerAdapter{}
+	errs := []error{}
 	for _, opt := range options {
-		opt()
+		err := opt()
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) > 0 {
+		for _, v := range errs {
+			logger.Error(v)
+		}
 	}
 
 	if envGOGC := os.Getenv("GOGC"); envGOGC != "" {
