@@ -72,8 +72,7 @@ func getCurrentPercentAndChangeGOGC() {
 	newgogc := getGOGC(previousGOGC, memoryLimitInPercent, memPercent)
 
 	if previousGOGC != newgogc {
-		logger.Debug(fmt.Sprintf("gctuner: current usage %v", memPercent))
-		logger.Debug(fmt.Sprintf("gctuner: adjust GOGC - from %v to %v", previousGOGC, newgogc))
+		logger.Debug(fmt.Sprintf("gctuner: current mem usage %%:%v. adjusting GOGC - from %v to %v", memPercent, previousGOGC, newgogc))
 		previousGOGC = debug.SetGCPercent(newgogc)
 	}
 }
