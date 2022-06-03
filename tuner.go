@@ -29,6 +29,7 @@ func SetLogger(l ILogger) OptFunc {
 }
 
 type StdLoggerAdapter struct {
+	DebugEnabled bool
 }
 
 func (l *StdLoggerAdapter) Error(args ...interface{}) {
@@ -36,7 +37,9 @@ func (l *StdLoggerAdapter) Error(args ...interface{}) {
 }
 
 func (l *StdLoggerAdapter) Debug(args ...interface{}) {
-	log.Print(args...)
+	if l.DebugEnabled {
+		log.Print(args...)
+	}
 }
 
 type finalizer struct {
@@ -61,16 +64,18 @@ func getCurrentPercentAndChangeGOGC() {
 	if err != nil {
 		failCounter++
 		if failCounter%10 == 0 {
-			logger.Error(fmt.Sprintf("failed to adjust GC err :%v", err.Error()))
+			logger.Error(fmt.Sprintf("gctuner: failed to adjust GC err :%v", err.Error()))
 		}
 		return
 	}
 
-	logger.Debug("Mem usage: %v", memPercent)
-
 	newgogc := getGOGC(previousGOGC, memoryLimitInPercent, memPercent)
 
-	previousGOGC = debug.SetGCPercent(newgogc)
+	if previousGOGC != newgogc {
+		logger.Debug(fmt.Sprintf("gctuner: current usage %v", memPercent))
+		logger.Debug(fmt.Sprintf("gctuner: adjust GOGC - from %v to %v", previousGOGC, newgogc))
+		previousGOGC = debug.SetGCPercent(newgogc)
+	}
 }
 
 func getGOGC(previousGOGC int, memoryLimitInPercent, memPercent float64) int {
@@ -83,10 +88,8 @@ func getGOGC(previousGOGC int, memoryLimitInPercent, memPercent float64) int {
 	// if newgogc < 0, we have to use the previous gogc to determine the next
 	if newgogc < 0 {
 		newgogc = float64(previousGOGC) * memoryLimitInPercent / memPercent
-		logger.Debug(fmt.Sprintf("attempting to adjust GOGC using previous - from %v to %v", previousGOGC, newgogc))
-	} else {
-		logger.Debug(fmt.Sprintf("attempting to adjust GOGC - from %v to %v", previousGOGC, newgogc))
 	}
+
 	return int(newgogc)
 }
 
@@ -128,7 +131,7 @@ func NewTuner(useCgroup bool, percent float64, options ...OptFunc) *finalizer {
 
 	memoryLimitInPercent = percent
 
-	logger.Debug(fmt.Sprintf("GC Tuner initialized. GOGC: %v Target percentage: %v", previousGOGC, percent))
+	logger.Debug(fmt.Sprintf("gctuner: GC Tuner initialized. GOGC: %v Target percentage: %v", previousGOGC, percent))
 
 	f := &finalizer{}
 
