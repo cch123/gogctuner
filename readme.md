@@ -1,4 +1,4 @@
-# GOGCTuner [beta]
+# GOGCTuner
 
 idea is from this article [How We Saved 70K Cores Across 30 Mission-Critical Services (Large-Scale, Semi-Automated Go GC Tuning @Uber) ](https://eng.uber.com/how-we-saved-70k-cores-across-30-mission-critical-services/)
 
@@ -18,5 +18,5 @@ func initProcess() {
 
 ## Current Status
 
-more tests are needed
+Go 1.19 adds a [soft memory limit](https://github.com/golang/proposal/blob/master/design/48409-soft-memory-limit.md) which changes its pacer algorithm and scvg behavior, this lib will be useless when you update to Go 1.19.
 
