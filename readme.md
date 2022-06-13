@@ -18,5 +18,5 @@ func initProcess() {
 
 ## Current Status
 
-Go 1.19 adds a [soft memory limit](https://github.com/golang/proposal/blob/master/design/48409-soft-memory-limit.md) which changes its pacer algorithm and scvg behavior, this lib will be useless when you update to Go 1.19.
+Go 1.19 adds a [soft memory limit](https://github.com/golang/proposal/blob/master/design/48409-soft-memory-limit.md) which changes its pacer algorithm and scvg behavior, we'll see what go team will provide in the new version. Maybe this lib can be deprecated in Go 1.19.
 
