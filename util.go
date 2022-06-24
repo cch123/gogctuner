@@ -1,13 +1,14 @@
 package gogctuner
 
 import (
-	mem_util "github.com/shirou/gopsutil/mem"
-	"github.com/shirou/gopsutil/process"
 	"io/ioutil"
 	"math"
 	"os"
 	"strconv"
 	"strings"
+
+	mem_util "github.com/shirou/gopsutil/mem"
+	"github.com/shirou/gopsutil/process"
 )
 
 const cgroupMemLimitPath = "/sys/fs/cgroup/memory/memory.limit_in_bytes"
@@ -93,3 +94,8 @@ func getUsageNormal() (float64, error) {
 }
 
 var getUsage func() (float64, error)
+
+// GetPreviousGOGC collect GOGC
+func GetPreviousGOGC() int {
+	return previousGOGC
+}
