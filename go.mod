@@ -1,4 +1,4 @@
-module gogctuner
+module github.com/cch123/gogctuner
 
 go 1.17
 

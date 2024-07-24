@@ -36,15 +36,6 @@ func parseUint(s string, base, bitSize int) (uint64, error) {
 	return v, nil
 }
 
-// copied from https://github.com/containerd/cgroups/blob/318312a373405e5e91134d8063d04d59768a1bff/utils.go#L243
-func readUint(path string) (uint64, error) {
-	v, err := os.ReadFile(path)
-	if err != nil {
-		return 0, err
-	}
-	return parseUint(strings.TrimSpace(string(v)), 10, 64)
-}
-
 func getUsageCGroup() (float64, error) {
 	p, err := process.NewProcess(int32(os.Getpid()))
 	if err != nil {
@@ -75,6 +66,11 @@ func getCGroupMemoryLimit() (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
+
+	if usage <= 0 {
+		return machineMemory.Total, nil
+	}
+
 	limit := uint64(math.Min(float64(usage), float64(machineMemory.Total)))
 	return limit, nil
 }
@@ -124,12 +120,12 @@ func readMemoryLimit(cgroupPath string) (uint64, error) {
 		return 0, err
 	}
 
-	limitStr := string(data)
+	limitStr := strings.TrimSpace(string(data))
 	if limitStr == "max" {
-		return 0, nil // No limit
+		return 0, nil // cgroup v2 No limit
 	}
 
-	limit, err := strconv.ParseUint(strings.TrimSpace(limitStr), 10, 64)
+	limit, err := parseUint(strings.TrimSpace(limitStr), 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("failed to parse memory limit: %w", err)
 	}
