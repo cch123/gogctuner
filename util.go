@@ -1,17 +1,19 @@
 package gogctuner
 
 import (
-	"io/ioutil"
+	"fmt"
 	"math"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/containerd/cgroups"
 	mem_util "github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/process"
 )
 
-const cgroupMemLimitPath = "/sys/fs/cgroup/memory/memory.limit_in_bytes"
+const cgroupV1MemLimitPath = "/sys/fs/cgroup/memory/memory.limit_in_bytes"
+const cgroupV2MemLimitPath = "/sys/fs/cgroup/memory.max"
 
 var memoryLimitInPercent float64 = 100 // default no limit
 
@@ -36,7 +38,7 @@ func parseUint(s string, base, bitSize int) (uint64, error) {
 
 // copied from https://github.com/containerd/cgroups/blob/318312a373405e5e91134d8063d04d59768a1bff/utils.go#L243
 func readUint(path string) (uint64, error) {
-	v, err := ioutil.ReadFile(path)
+	v, err := os.ReadFile(path)
 	if err != nil {
 		return 0, err
 	}
@@ -65,7 +67,7 @@ func getUsageCGroup() (float64, error) {
 }
 
 func getCGroupMemoryLimit() (uint64, error) {
-	usage, err := readUint(cgroupMemLimitPath)
+	usage, err := getMemoryLimit()
 	if err != nil {
 		return 0, err
 	}
@@ -75,6 +77,15 @@ func getCGroupMemoryLimit() (uint64, error) {
 	}
 	limit := uint64(math.Min(float64(usage), float64(machineMemory.Total)))
 	return limit, nil
+}
+
+func getMemoryLimit() (uint64, error) {
+	cgroupPath := cgroupV1MemLimitPath
+	if checkIfCgroupV2() {
+		cgroupPath = cgroupV2MemLimitPath
+	}
+
+	return readMemoryLimit(cgroupPath)
 }
 
 // return cpu percent, mem in MB, goroutine num
@@ -98,4 +109,30 @@ var getUsage func() (float64, error)
 // GetPreviousGOGC collect GOGC
 func GetPreviousGOGC() int {
 	return previousGOGC
+}
+
+func checkIfCgroupV2() bool {
+	if cgroups.Mode() == cgroups.Unified {
+		return true
+	}
+	return false
+}
+
+func readMemoryLimit(cgroupPath string) (uint64, error) {
+	data, err := os.ReadFile(cgroupPath)
+	if err != nil {
+		return 0, err
+	}
+
+	limitStr := string(data)
+	if limitStr == "max" {
+		return 0, nil // No limit
+	}
+
+	limit, err := strconv.ParseUint(strings.TrimSpace(limitStr), 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse memory limit: %w", err)
+	}
+
+	return limit, nil
 }
