@@ -47,7 +47,7 @@ func getUsageCGroup() (float64, error) {
 		return 0, err
 	}
 
-	memLimit, err := getCGroupMemoryLimit()
+	memLimit, err := getMemoryLimit()
 	if err != nil {
 		return 0, err
 	}
@@ -57,8 +57,8 @@ func getUsageCGroup() (float64, error) {
 	return memPercent, nil
 }
 
-func getCGroupMemoryLimit() (uint64, error) {
-	usage, err := getMemoryLimit()
+func getMemoryLimit() (uint64, error) {
+	usage, err := getCGroupMemoryLimit()
 	if err != nil {
 		return 0, err
 	}
@@ -75,13 +75,39 @@ func getCGroupMemoryLimit() (uint64, error) {
 	return limit, nil
 }
 
-func getMemoryLimit() (uint64, error) {
+func getCGroupMemoryLimit() (uint64, error) {
 	cgroupPath := cgroupV1MemLimitPath
-	if checkIfCgroupV2() {
+	if isCGroupV2() {
 		cgroupPath = cgroupV2MemLimitPath
 	}
 
 	return readMemoryLimit(cgroupPath)
+}
+
+func isCGroupV2() bool {
+	if cgroups.Mode() == cgroups.Unified {
+		return true
+	}
+	return false
+}
+
+func readMemoryLimit(cgroupPath string) (uint64, error) {
+	data, err := os.ReadFile(cgroupPath)
+	if err != nil {
+		return 0, err
+	}
+
+	limitStr := strings.TrimSpace(string(data))
+	if limitStr == "max" {
+		return 0, nil // cgroup v2 No limit
+	}
+
+	limit, err := parseUint(limitStr, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse memory limit: %w", err)
+	}
+
+	return limit, nil
 }
 
 // return cpu percent, mem in MB, goroutine num
@@ -105,30 +131,4 @@ var getUsage func() (float64, error)
 // GetPreviousGOGC collect GOGC
 func GetPreviousGOGC() int {
 	return previousGOGC
-}
-
-func checkIfCgroupV2() bool {
-	if cgroups.Mode() == cgroups.Unified {
-		return true
-	}
-	return false
-}
-
-func readMemoryLimit(cgroupPath string) (uint64, error) {
-	data, err := os.ReadFile(cgroupPath)
-	if err != nil {
-		return 0, err
-	}
-
-	limitStr := strings.TrimSpace(string(data))
-	if limitStr == "max" {
-		return 0, nil // cgroup v2 No limit
-	}
-
-	limit, err := parseUint(strings.TrimSpace(limitStr), 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse memory limit: %w", err)
-	}
-
-	return limit, nil
 }
